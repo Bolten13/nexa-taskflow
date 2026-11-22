@@ -16,7 +16,7 @@ spec:
         - name: api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: 5000
+            - containerPort: 8085
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           resources:

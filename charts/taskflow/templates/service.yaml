@@ -8,4 +8,4 @@ spec:
     app: {{ .Release.Name }}-taskflow
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: 5000
+      targetPort: 8085

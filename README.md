@@ -32,8 +32,8 @@ pytest
 
 # 3. Lancer l'application avec Docker
 docker build -t taskflow:local .
-docker run --rm -p 5000:5000 taskflow:local
-curl http://localhost:5000/health
+docker run --rm -p 8085:8085 taskflow:local
+curl http://localhost:8085/health
 ```
 
 Gardez l'historique Git intact : il fait partie de l'exercice.
