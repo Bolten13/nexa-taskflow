@@ -3,12 +3,12 @@
 ATTENTION : cette application contient VOLONTAIREMENT des failles de sécurité
 à des fins pédagogiques. Ne jamais la déployer sur un environnement réel.
 """
+
 import hashlib
 import pickle
 import sqlite3
-import subprocess
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 
 from app.config import DATABASE, PAYMENT_API_KEY
 
@@ -25,11 +25,13 @@ def init_db():
     conn = get_db()
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tasks ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, owner TEXT, done INTEGER DEFAULT 0)"
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, "
+        "owner TEXT, done INTEGER DEFAULT 0)"
     )
     conn.execute(
         "CREATE TABLE IF NOT EXISTS users ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)"
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "username TEXT UNIQUE, password TEXT)"
     )
     conn.commit()
     conn.close()
@@ -44,11 +46,13 @@ def health():
 def list_tasks():
     owner = request.args.get("owner", "")
     conn = get_db()
- # Requête paramétrée pour éviter les injections SQL
+
+    # Requête paramétrée pour éviter les injections SQL
     rows = conn.execute(
-    "SELECT * FROM tasks WHERE owner = ?",
-    (owner,)
-).fetchall()
+        "SELECT * FROM tasks WHERE owner = ?",
+        (owner,)
+    ).fetchall()
+
     conn.close()
     return jsonify([dict(r) for r in rows])
 
@@ -57,49 +61,80 @@ def list_tasks():
 def create_task():
     data = request.get_json(force=True)
     conn = get_db()
+
     cur = conn.execute(
         "INSERT INTO tasks (title, owner) VALUES (?, ?)",
         (data.get("title", ""), data.get("owner", "")),
     )
+
     conn.commit()
     task_id = cur.lastrowid
     conn.close()
+
     return jsonify(id=task_id), 201
 
 
 @app.route("/users", methods=["POST"])
 def create_user():
     data = request.get_json(force=True)
-    password_hash = hashlib.md5(data.get("password", "").encode()).hexdigest()
+
+    # Vulnérabilité conservée pour la suite du TP : MD5
+    password_hash = hashlib.md5(
+        data.get("password", "").encode()
+    ).hexdigest()
+
     conn = get_db()
     conn.execute(
         "INSERT INTO users (username, password) VALUES (?, ?)",
         (data.get("username", ""), password_hash),
     )
+
     conn.commit()
     conn.close()
+
     return jsonify(created=True), 201
 
 
 @app.route("/export", methods=["GET"])
 def export_tasks():
     fmt = request.args.get("format", "csv")
-    output = subprocess.check_output("echo export " + fmt, shell=True)
-    return output
+
+    # Seuls les formats autorisés peuvent être utilisés
+    allowed_formats = ["csv", "json"]
+
+    if fmt not in allowed_formats:
+        return jsonify(error="Format non autorisé"), 400
+
+    # Génération directe de la réponse sans exécuter de commande système
+    return Response(
+        f"export {fmt}\n",
+        mimetype="text/plain"
+    )
 
 
 @app.route("/import", methods=["POST"])
 def import_tasks():
+    # Vulnérabilité conservée pour la suite du TP : Pickle
     tasks = pickle.loads(request.data)
+
     return jsonify(imported=len(tasks))
 
 
 @app.route("/payment/status")
 def payment_status():
     # Le jeton est utilisé pour appeler un prestataire de paiement (simulé)
-    return jsonify(provider="paycorp", configured=bool(PAYMENT_API_KEY))
+    return jsonify(
+        provider="paycorp",
+        configured=bool(PAYMENT_API_KEY)
+    )
 
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=8085, debug=True)
+
+    # Configuration volontairement vulnérable pour la suite du TP
+    app.run(
+        host="0.0.0.0",
+        port=8085,
+        debug=True
+    )
