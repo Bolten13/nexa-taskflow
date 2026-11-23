@@ -44,8 +44,11 @@ def health():
 def list_tasks():
     owner = request.args.get("owner", "")
     conn = get_db()
-    # Requête construite par concaténation
-    rows = conn.execute("SELECT * FROM tasks WHERE owner = '" + owner + "'").fetchall()
+ # Requête paramétrée pour éviter les injections SQL
+    rows = conn.execute(
+    "SELECT * FROM tasks WHERE owner = ?",
+    (owner,)
+).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
