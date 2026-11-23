@@ -1,0 +1,18 @@
+rules:
+  - id: taskflow-insecure-pickle
+    languages:
+      - python
+    severity: ERROR
+    message: >
+      TaskFlow : désérialisation non sécurisée.
+      Ne jamais utiliser pickle.loads() directement
+      sur les données d'une requête HTTP.
+      Utiliser un format sûr comme JSON.
+    metadata:
+      category: security
+      technology:
+        - flask
+      cwe:
+        - "CWE-502: Deserialization of Untrusted Data"
+    patterns:
+      - pattern: pickle.loads(request.data)
