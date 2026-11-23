@@ -29,3 +29,22 @@ def test_create_and_list_tasks(client):
 def test_create_user(client):
     resp = client.post("/users", json={"username": "bob", "password": "s3cret"})
     assert resp.status_code == 201
+
+
+def test_import_tasks(client):
+    # Vérifie l'import avec une liste JSON valide
+    resp = client.post(
+        "/import",
+        json=[{"title": "Tache 1"}, {"title": "Tache 2"}]
+    )
+
+    assert resp.status_code == 200
+    assert resp.get_json() == {"imported": 2}
+
+    # Vérifie le rejet des données invalides
+    resp = client.post(
+        "/import",
+        json={"title": "Tache invalide"}
+    )
+
+    assert resp.status_code == 400

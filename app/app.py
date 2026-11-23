@@ -5,7 +5,6 @@ ATTENTION : cette application contient VOLONTAIREMENT des failles de sécurité
 """
 
 import hashlib
-import pickle
 import sqlite3
 
 from flask import Flask, Response, jsonify, request
@@ -114,8 +113,11 @@ def export_tasks():
 
 @app.route("/import", methods=["POST"])
 def import_tasks():
-    # Vulnérabilité conservée pour la suite du TP : Pickle
-    tasks = pickle.loads(request.data)
+    tasks = request.get_json(silent=True)
+
+    # Vérification du format des données reçues
+    if not isinstance(tasks, list):
+        return jsonify(error="Une liste JSON est attendue"), 400
 
     return jsonify(imported=len(tasks))
 
