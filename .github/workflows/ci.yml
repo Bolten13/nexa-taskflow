@@ -8,12 +8,16 @@ permissions:
   contents: read
 
 jobs:
+
+  # ==========================================
+  # JOB 1 : Tests Python
+  # ==========================================
   build-test:
     name: build-test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Récupérer le code
+      - name: Recuperer le code
         uses: actions/checkout@v4
 
       - name: Installer Python 3.12
@@ -21,8 +25,58 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Installer les dépendances
+      - name: Installer les dependances
         run: python -m pip install -r requirements.txt
 
-      - name: Exécuter les tests
+      - name: Executer les tests
         run: python -m pytest
+
+  # ==========================================
+  # JOB 2 : Analyse statique avec Semgrep
+  # ==========================================
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer Semgrep
+        run: python -m pip install semgrep==1.186.0
+
+      - name: Analyser le code avec Semgrep
+        run: |
+          semgrep scan \
+            --config p/default \
+            --config regles/ \
+            --error \
+            --exclude .venv \
+            --exclude .git
+
+  # ==========================================
+  # JOB 3 : Detection de secrets avec Gitleaks
+  # ==========================================
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code et l'historique Git
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installer Gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+
+      - name: Analyser les secrets
+        run: gitleaks git --redact
