@@ -4,3 +4,21 @@ __pycache__/
 *.db
 .pytest_cache/
 .env
+
+# ==========================================
+# Rapports de securite - DevSecOps
+# ==========================================
+gitleaks*.json
+semgrep*.json
+trivy*.json
+
+# Fichiers sensibles
+.env
+.env.*
+!.env.example
+
+# Environnements Python
+.venv/
+__pycache__/
+*.pyc
+

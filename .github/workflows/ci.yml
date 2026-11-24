@@ -80,3 +80,93 @@ jobs:
 
       - name: Analyser les secrets
         run: gitleaks git --redact
+
+  # ==========================================
+  # JOB 4 : Analyse SCA et Docker avec Trivy
+  # ==========================================
+  trivy:
+    name: trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      # Installer la meme version de Trivy que celle du TP
+      - name: Installer Trivy
+        run: |
+          curl -sSfL \
+            https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.tar.gz \
+            -o trivy.tar.gz
+
+          tar -xzf trivy.tar.gz trivy
+          sudo install trivy /usr/local/bin/trivy
+
+          trivy --version
+
+      # ======================================
+      # ANALYSE DES DEPENDANCES
+      # ======================================
+
+      - name: Analyse informative des dependances
+        run: |
+          trivy fs \
+            --scanners vuln \
+            --exit-code 0 \
+            .
+
+      # Les vulnerabilites CRITICAL sont toujours bloquantes
+      - name: Bloquer les dependances CRITICAL
+        run: |
+          trivy fs \
+            --scanners vuln \
+            --severity CRITICAL \
+            --exit-code 1 \
+            .
+
+      # Les vulnerabilites HIGH sont bloquantes si corrigeables
+      - name: Bloquer les dependances HIGH corrigeables
+        run: |
+          trivy fs \
+            --scanners vuln \
+            --severity HIGH \
+            --ignore-unfixed \
+            --exit-code 1 \
+            .
+
+      # ======================================
+      # CONSTRUCTION DE L'IMAGE DOCKER
+      # ======================================
+
+      - name: Construire l'image Docker
+        run: docker build -t taskflow:tp3-ci .
+
+      # ======================================
+      # ANALYSE DE L'IMAGE DOCKER
+      # ======================================
+
+      - name: Analyse informative de l'image Docker
+        run: |
+          trivy image \
+            --scanners vuln \
+            --exit-code 0 \
+            taskflow:tp3-ci
+
+      # Les vulnerabilites CRITICAL sont toujours bloquantes
+      - name: Bloquer les vulnerabilites CRITICAL de l'image
+        run: |
+          trivy image \
+            --scanners vuln \
+            --severity CRITICAL \
+            --exit-code 1 \
+            taskflow:tp3-ci
+
+      # Les vulnerabilites HIGH sont bloquantes si corrigeables
+      - name: Bloquer les vulnerabilites HIGH corrigeables de l'image
+        run: |
+          trivy image \
+            --scanners vuln \
+            --severity HIGH \
+            --ignore-unfixed \
+            --exit-code 1 \
+            taskflow:tp3-ci

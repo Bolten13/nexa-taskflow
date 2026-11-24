@@ -1,0 +1,40 @@
+# Environnement virtuel Python
+.venv/
+venv/
+env/
+
+# Historique et configuration Git
+.git/
+.github/
+
+# Fichiers Python temporaires
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Fichiers sensibles
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Rapports des outils de securite
+gitleaks*.json
+semgrep*.json
+trivy*.json
+
+# Fichiers de configuration locaux
+.vscode/
+.idea/
+
+# Tests et documentation
+tests/
+docs/
+
+# Fichiers temporaires
+*.log
+*.tmp
