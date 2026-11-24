@@ -22,16 +22,19 @@ def get_db():
 
 def init_db():
     conn = get_db()
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tasks ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, "
         "owner TEXT, done INTEGER DEFAULT 0)"
     )
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS users ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "username TEXT UNIQUE, password TEXT)"
     )
+
     conn.commit()
     conn.close()
 
@@ -53,6 +56,7 @@ def list_tasks():
     ).fetchall()
 
     conn.close()
+
     return jsonify([dict(r) for r in rows])
 
 
@@ -77,12 +81,13 @@ def create_task():
 def create_user():
     data = request.get_json(force=True)
 
-    # Vulnérabilité conservée pour la suite du TP : MD5
+    # Vulnérabilité pédagogique encore présente : MD5
     password_hash = hashlib.md5(
         data.get("password", "").encode()
     ).hexdigest()
 
     conn = get_db()
+
     conn.execute(
         "INSERT INTO users (username, password) VALUES (?, ?)",
         (data.get("username", ""), password_hash),
@@ -104,7 +109,7 @@ def export_tasks():
     if fmt not in allowed_formats:
         return jsonify(error="Format non autorisé"), 400
 
-    # Génération directe de la réponse sans exécuter de commande système
+    # Réponse générée sans exécuter de commande système
     return Response(
         f"export {fmt}\n",
         mimetype="text/plain"
@@ -124,7 +129,7 @@ def import_tasks():
 
 @app.route("/payment/status")
 def payment_status():
-    # Le jeton est utilisé pour appeler un prestataire de paiement (simulé)
+    # Le jeton est récupéré depuis une variable d'environnement
     return jsonify(
         provider="paycorp",
         configured=bool(PAYMENT_API_KEY)
@@ -134,9 +139,9 @@ def payment_status():
 if __name__ == "__main__":
     init_db()
 
-    # Configuration volontairement vulnérable pour la suite du TP
+    # Configuration locale avec le mode debug désactivé
     app.run(
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=8085,
-        debug=True
+        debug=False
     )
