@@ -1,0 +1,28 @@
+# ==========================================
+# TASKFLOW - POLITIQUE DE SECURITE RESEAU
+# TP 4 - Infrastructure as Code
+# ==========================================
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+
+metadata:
+  name: taskflow-ingress
+  namespace: taskflow
+
+spec:
+  podSelector:
+    matchLabels:
+      app: taskflow
+
+  policyTypes:
+    - Ingress
+
+  ingress:
+    # Autoriser les Pods du meme namespace
+    - from:
+        - podSelector: {}
+
+      ports:
+        - protocol: TCP
+          port: 8085

@@ -1,11 +1,26 @@
+# ==========================================
+# TASKFLOW - SERVICE KUBERNETES
+# TP 4 - Infrastructure as Code
+# ==========================================
+
 apiVersion: v1
 kind: Service
+
 metadata:
   name: taskflow
+  namespace: taskflow
+
+  labels:
+    app: taskflow
+
 spec:
-  type: LoadBalancer
+  type: ClusterIP
+
   selector:
     app: taskflow
+
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 8085
+      protocol: TCP

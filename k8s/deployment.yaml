@@ -1,13 +1,26 @@
+# ==========================================
+# TASKFLOW - DEPLOIEMENT KUBERNETES SECURISE
+# TP 4 - Infrastructure as Code
+# ==========================================
+
 apiVersion: apps/v1
 kind: Deployment
 
 metadata:
   name: taskflow
+  namespace: taskflow
+
   labels:
     app: taskflow
 
+  annotations:
+    # Exception temporaire : digest indisponible pour l'image de demonstration.
+    # A remplacer par une image referencee en @sha256 avant tout deploiement.
+    checkov.io/skip1: "CKV_K8S_43=Image de demonstration non publiee. Digest SHA256 obligatoire avant deploiement. Revue 2027-01-31."
+
 spec:
-  replicas: 2
+  # Une seule instance tant que la base utilise SQLite
+  replicas: 1
 
   selector:
     matchLabels:
@@ -19,39 +32,102 @@ spec:
         app: taskflow
 
     spec:
+      # Eviter le montage inutile des identifiants Kubernetes
+      automountServiceAccountToken: false
+
+      # Securite globale du Pod
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+
         seccompProfile:
           type: RuntimeDefault
 
       containers:
         - name: api
-          image: nexa/taskflow:latest
+
+          # Version fixe : remplacer par une image reellement publiee
+          image: nexa/taskflow:1.0.0
+
+          imagePullPolicy: Always
 
           ports:
-            - containerPort: 8085
+            - name: http
+              containerPort: 8085
+              protocol: TCP
 
+          # Securite du conteneur
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
             runAsNonRoot: true
+            runAsUser: 10001
+            readOnlyRootFilesystem: true
+
             capabilities:
               drop:
                 - ALL
 
+          # Variables d'environnement
           env:
             - name: TASKFLOW_DB
               value: /data/taskflow.db
 
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+
+            - name: TMPDIR
+              value: /tmp
+
+          # Ressources garanties
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          # Verification que l'application fonctionne
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Verification que l'application peut recevoir du trafic
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Stockage des donnees et fichiers temporaires
           volumeMounts:
             - name: data
               mountPath: /data
 
+            - name: tmp
+              mountPath: /tmp
+
       volumes:
+        # Stockage conserve pour la demonstration
         - name: data
           hostPath:
             path: /var/taskflow
             type: DirectoryOrCreate
+
+        # Volume temporaire accessible en ecriture
+        - name: tmp
+          emptyDir: {}

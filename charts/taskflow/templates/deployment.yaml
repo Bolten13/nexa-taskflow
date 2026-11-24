@@ -1,23 +1,111 @@
+# ==========================================
+# TASKFLOW - DEPLOIEMENT HELM SECURISE
+# TP 4 - DevSecOps
+# ==========================================
+
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: {{ .Release.Name }}-taskflow
+  namespace: {{ .Values.namespace }}
+
+  labels:
+    app: {{ .Release.Name }}-taskflow
+
+  annotations:
+    # Exception temporaire documentee
+    checkov.io/skip1: "CKV_K8S_43=Image de demonstration non publiee. Digest SHA256 obligatoire avant deploiement. Revue 2027-01-31."
+
 spec:
   replicas: {{ .Values.replicaCount }}
+
   selector:
     matchLabels:
       app: {{ .Release.Name }}-taskflow
+
   template:
     metadata:
       labels:
         app: {{ .Release.Name }}-taskflow
+
     spec:
+      # Ne pas monter automatiquement le token Kubernetes
+      automountServiceAccountToken: false
+
+      # Contexte de securite global
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
       containers:
         - name: api
+
+          # Image avec version fixe
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
           ports:
-            - containerPort: 8085
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+
+          # Securite du conteneur
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+
+          # Limites CPU et RAM
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
+          # Variables d'environnement
+          env:
+            - name: TASKFLOW_DB
+              value: {{ .Values.database.path | quote }}
+
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+
+            - name: TMPDIR
+              value: /tmp
+
+          # Sonde de disponibilite
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: http
+
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Sonde de fonctionnement
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: http
+
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Montage des volumes
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        # Stockage de demonstration
+        - name: data
+          hostPath:
+            path: {{ .Values.storage.hostPath }}
+            type: DirectoryOrCreate
+
+        # Stockage temporaire
+        - name: tmp
+          emptyDir: {}

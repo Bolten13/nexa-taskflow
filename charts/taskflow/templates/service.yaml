@@ -1,11 +1,25 @@
+# ==========================================
+# TASKFLOW - SERVICE HELM
+# ==========================================
+
 apiVersion: v1
 kind: Service
+
 metadata:
   name: {{ .Release.Name }}-taskflow
+  namespace: {{ .Values.namespace }}
+
+  labels:
+    app: {{ .Release.Name }}-taskflow
+
 spec:
   type: {{ .Values.service.type }}
+
   selector:
     app: {{ .Release.Name }}-taskflow
+
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: 8085
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP

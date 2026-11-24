@@ -1,0 +1,12 @@
+# ==========================================
+# TASKFLOW - NAMESPACE DEDIE
+# ==========================================
+
+apiVersion: v1
+kind: Namespace
+
+metadata:
+  name: taskflow
+
+  labels:
+    app: taskflow

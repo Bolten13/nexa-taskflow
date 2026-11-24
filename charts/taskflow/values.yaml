@@ -1,15 +1,99 @@
-replicaCount: 2
+# ==========================================
+# TASKFLOW - CONFIGURATION HELM SECURISEE
+# TP 4 - DevSecOps
+# ==========================================
+
+# Namespace dedie a TaskFlow
+namespace: taskflow
+
+# Une seule instance pour eviter les conflits SQLite
+replicaCount: 1
+
+# ==========================================
+# IMAGE DOCKER
+# ==========================================
 
 image:
   repository: nexa/taskflow
-  tag: latest
+  tag: "1.0.0"
+  pullPolicy: Always
+
+# ==========================================
+# SERVICE RESEAU
+# ==========================================
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
+  targetPort: 8085
+
+# ==========================================
+# SECURITE DU POD
+# ==========================================
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+  seccompProfile:
+    type: RuntimeDefault
+
+# ==========================================
+# SECURITE DU CONTENEUR
+# ==========================================
 
 securityContext:
-  runAsUser: 0
-  allowPrivilegeEscalation: true
+  privileged: false
+  allowPrivilegeEscalation: false
 
-resources: {}
+  runAsNonRoot: true
+  runAsUser: 10001
+
+  readOnlyRootFilesystem: true
+
+  capabilities:
+    drop:
+      - ALL
+
+# ==========================================
+# LIMITES DE RESSOURCES
+# ==========================================
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+# ==========================================
+# BASE DE DONNEES SQLITE
+# ==========================================
+
+database:
+  path: /data/taskflow.db
+
+# ==========================================
+# STOCKAGE
+# ==========================================
+
+storage:
+  hostPath: /var/taskflow
+
+# ==========================================
+# VERIFICATION DE SANTE
+# ==========================================
+
+healthCheck:
+  path: /health
+
+# ==========================================
+# POLITIQUE RESEAU
+# ==========================================
+
+networkPolicy:
+  enabled: true
