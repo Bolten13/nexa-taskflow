@@ -1,0 +1,18 @@
+# ==========================================
+# TASKFLOW - EXCEPTIONS GITLEAKS
+# TP DevSecOps - 24/11/2026
+# ==========================================
+
+# Exception 1
+# PAYMENT_API_KEY - app/config.py
+# Commit historique du 05/10/2026
+# Justification : secret fictif introduit pour le TP.
+# Revue : 31/01/2027
+a85c838c7b3721cae478659384d4f09b93e462bb:app/config.py:generic-api-key:6
+
+# Exception 2
+# DEPLOY_TOKEN - .env
+# Commit historique du 12/10/2026
+# Justification : secret fictif introduit pour le TP.
+# Revue : 31/01/2027
+e9d19246b9cd2ff846b7bb56c4c2a3970799205a:.env:generic-api-key:3
