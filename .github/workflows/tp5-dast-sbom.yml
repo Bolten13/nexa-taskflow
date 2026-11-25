@@ -1,0 +1,125 @@
+
+name: TP5 - DAST et SBOM
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ==========================================
+  # JOB 1 : SCAN DAST AVEC OWASP ZAP
+  # ==========================================
+  zap-baseline:
+    name: zap-baseline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Construire TaskFlow
+        run: docker build -t taskflow:tp5 .
+
+      - name: Demarrer TaskFlow
+        run: |
+          docker run -d \
+            --name taskflow-tp5 \
+            -e TASKFLOW_HOST=0.0.0.0 \
+            -p 127.0.0.1:8085:8085 \
+            taskflow:tp5
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8085/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs taskflow-tp5
+          exit 1
+
+      - name: Preparer le dossier des rapports
+        run: |
+          mkdir -p rapports/tp5
+          sudo chown 1000:1000 rapports/tp5
+
+      - name: Executer ZAP Baseline
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD/rapports/tp5:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy@sha256:9624669db72f54d86c4b46a7064518bd9bf79d8c61a4c31befa9923489f328af \
+            zap-baseline.py \
+            -t http://127.0.0.1:8085/health \
+            -r zap-baseline.html \
+            -J zap-baseline.json \
+            -I
+
+      - name: Archiver le rapport ZAP
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tp5-rapport-zap
+          path: |
+            rapports/tp5/zap-baseline.html
+            rapports/tp5/zap-baseline.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ==========================================
+  # JOB 2 : SBOM AVEC SYFT ET GRYPE
+  # ==========================================
+  sbom-grype:
+    name: sbom-grype
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Construire TaskFlow
+        run: docker build -t taskflow:tp5 .
+
+      - name: Exporter l'image Docker
+        run: |
+          docker save taskflow:tp5 \
+            -o "$RUNNER_TEMP/taskflow-tp5.tar"
+
+          mkdir -p rapports/tp5
+
+      - name: Generer le SBOM CycloneDX
+        run: |
+          docker run --rm \
+            -v "$RUNNER_TEMP/taskflow-tp5.tar:/image.tar:ro" \
+            anchore/syft:v1.57.2 \
+            docker-archive:/image.tar \
+            -o cyclonedx-json \
+            > rapports/tp5/sbom.json
+
+          test -s rapports/tp5/sbom.json
+
+      - name: Analyser le SBOM avec Grype
+        run: |
+          docker run --rm \
+            -v "$PWD/rapports/tp5:/work:ro" \
+            anchore/grype:v0.122.1 \
+            sbom:/work/sbom.json \
+            -o json \
+            > rapports/tp5/grype.json
+
+          test -s rapports/tp5/grype.json
+
+      - name: Archiver le SBOM et le rapport Grype
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tp5-sbom-grype
+          path: |
+            rapports/tp5/sbom.json
+            rapports/tp5/grype.json
+          if-no-files-found: warn
+          retention-days: 14

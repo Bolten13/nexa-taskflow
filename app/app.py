@@ -3,7 +3,7 @@
 ATTENTION : cette application contient VOLONTAIREMENT des failles de sécurité
 à des fins pédagogiques. Ne jamais la déployer sur un environnement réel.
 """
-
+import os
 import hashlib
 import sqlite3
 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
     # Configuration locale avec le mode debug désactivé
     app.run(
-        host="127.0.0.1",
+        host=os.getenv("TASKFLOW_HOST", "127.0.0.1"),
         port=8085,
         debug=False
     )

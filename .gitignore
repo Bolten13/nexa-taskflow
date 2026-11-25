@@ -22,3 +22,6 @@ trivy*.json
 __pycache__/
 *.pyc
 
+
+# Rapports locaux du TP5
+/rapports/tp5/
