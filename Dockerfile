@@ -26,6 +26,11 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 
 FROM python:3.12-slim AS runtime
 
+# Correctif CVE-2026-124851 - libzstd1
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade libzstd1 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Recuperer uniquement l'environnement Python construit
